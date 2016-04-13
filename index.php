@@ -12,34 +12,49 @@
     ParseClient::initialize($_ENV['PARSE_ID'], '', $_ENV['PARSE_KEY']);
     ParseClient::setServerURL($_ENV['PARSE_URL']);
 
-    # The application key
+    /**
+     * Set the Slack app token
+     */
     $app_key = $_ENV['KEY'];
 
-    # Grab some of the values from the slash command, create vars for post back to Slack
+    /**
+     * Get the response from Slack
+     */
     $command = $_POST['command'];
     $text = $_POST['text'];
     $token = $_POST['token'];
     $user_id = $_POST['user_id'];
 
-    # Check the token and make sure the request is from our team
+    /**
+     * Validate the Slack token
+     */
     if($token != $app_key){
         $msg = "The token `".$token."` : `".$app_key."` for the slash command doesn't match. Check your script.";
         die($msg);
         echo $msg;
     }
 
-    # Break the text into an array in order to test various keywords
+    /**
+     * Break the text into an array in order to test various keywords
+     */
     $textArr = explode(' ', $text);
 
     if ($textArr[0] == '-list') {
+        /**
+         * List the user's notes
+         */
 
-    	# Fetch the user's notes
+    	/**
+         * Fetch the user's notes
+         */
     	$query = new ParseQuery('NoteObject');
     	$query->equalTo('user', $user_id);
     	$results = $query->find();
     	$notes = '';
 
-    	# Add each note to the response
+        /**
+    	 * Add each note to the response
+         */
     	foreach($results as $result) {
     		$noteId = $result->getObjectId();
     		$noteText = $result->get('text');
@@ -49,6 +64,10 @@
 
     	$response = $notes;
     } else if ($textArr[0] == '-delete') {
+        /**
+         * Delete a note (or notes) by ID(s)
+         */
+
         $message = '';
         $query = new ParseQuery('NoteObject');
 
@@ -62,6 +81,10 @@
 
         $response = $message;
     } else if ($textArr[0] == '-help') {
+        /**
+         * Show a list of commands
+         */
+
         $commandList = [
             [
                 command => '-list',
@@ -86,6 +109,10 @@
         }
         $response = "```".$commands."```";
     } else if ($textArr[0] == '-last') {
+        /**
+         * Display the most recent note
+         */
+
         $query = new ParseQuery('NoteObject');
         $query->descending('createdAt');
         $query->equalTo('user', $user_id);
@@ -96,8 +123,10 @@
 
         $response = "*#".$noteId.":* ```".$noteText."```";
     } else {
+    	/**
+         * Save the note
+         */
 
-    	# Save the note
     	$noteObject = ParseObject::create('NoteObject');
     	$noteObject->set("text", $text);
     	$noteObject->set("user", $user_id);
@@ -108,10 +137,14 @@
 
     header('Content-type: application/json');
 
-    # Build our response
+    /**
+     * Build the response
+     */
     $reply = [
         'text' => $response
     ];
 
-    # Send the reply back to the user.
+    /**
+     * Send the response to the user
+     */
     echo json_encode($reply);
